@@ -1,9 +1,9 @@
 import serial
 import time
 import signal
-import matplotlib.pyplot as plt
 
-ser = serial.Serial("COM3", 115200, parity=serial.PARITY_NONE)
+
+ser = serial.Serial("COM5", 115200, parity=serial.PARITY_NONE)
 
 with open("data.csv", "w", newline="") as file:
     while True:
@@ -11,3 +11,4 @@ with open("data.csv", "w", newline="") as file:
         print(line)
         file.write(line + ',')
         time.sleep(0.01)
+
