@@ -51,7 +51,9 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 float temperature_f;
-char currentTemperature_ch[13];
+float refTemp =  29.5;
+
+char currentTemperature_ch[50];
 
 int32_t pressure;
 int32_t counter = 0;
@@ -60,10 +62,8 @@ const float Tp = 1.0f;
 const float U_saturation = 1.f;
 const uint32_t max_pulse = 999;
 
-float Kp = 0;
-float Ti = 0;
-float Td = 0;
-float U_ref = 32.f;
+float pulse = 1.f;
+uint16_t pulseOut = 0;
 
 
 
@@ -89,6 +89,55 @@ uint32_t maping(float val, float inMin, float inMax, uint32_t outMin, uint32_t o
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void checkingSetTemperature(float U_ref)
+{
+	if (U_ref < 20.f)
+	{
+		U_ref = 20.f;
+	}
+	else if (U_ref > 40.f)
+	{
+		U_ref = 40.f;
+	}
+}
+
+struct PID
+{
+	float U;
+	float Kp;
+	float Ki;
+	float Kd;
+	float error;
+	float previousError;
+	float previousIn;
+	float UP, UD, UI;
+	float Tp;
+};
+
+struct PID pid;
+
+
+
+
+
+void calcPID(float desiredTemperature, float currentTemperature, struct PID *PID)
+{
+
+	PID->error = desiredTemperature - currentTemperature;
+
+	PID->UP = PID->Kp * PID->error;
+	PID->UI = PID->Ki * PID->Tp / 2.0 * (PID->error + PID->previousError) + PID->previousIn;
+	PID->UD = (PID->error - PID->previousError) / PID->Tp;
+
+	PID->previousError = PID->error;
+	PID->previousIn = PID->UI;
+
+	PID->U = PID->UP + PID->UI + PID->UD;
+
+}
+
+
 
 /* USER CODE END 0 */
 
@@ -127,11 +176,29 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   BMP280_Init(&hi2c1, BMP280_TEMPERATURE_16BIT, BMP280_STANDARD, BMP280_FORCEDMODE);
-  HAL_TIM_Base_Start_IT(&htim3);
-
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
-  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, max_pulse);
+   pid.U = 0;
+   pid.Kp = 0.013922;
+   pid.Ki = 0.00004897423;
+   pid.Kd = 0;
+   pid.error = 0;
+   pid.previousError = 0;
+   pid.previousIn = 0;
+   pid.UP = 0;
+   pid.UD = 0;
+   pid.UI = 0;
+   pid.Tp = 1;
+
+
+  HAL_TIM_Base_Start_IT(&htim3);
+
+
+
+
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -532,9 +599,21 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	BMP280_ReadTemperatureAndPressure(&temperature_f, &pressure);
 	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 	counter++;
+	checkingSetTemperature(refTemp);
+	calcPID(refTemp, temperature_f, &pid);
+	pulse = htim1.Init.Period * pid.U;
+
+	if(pulse < 0.0) pulseOut = 0;
+	else if(pulse > htim1.Init.Period) pulseOut = htim1.Init.Period;
+	else pulseOut = (uint16_t) pulse;
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
 	if (counter > 100)
 	{
-		sprintf(currentTemperature_ch, "%f \n\r", temperature_f);
+
+
+
+		sprintf(currentTemperature_ch, "%f : %f : %f : %d \n\r", temperature_f, pid.error, pid.U, pulseOut);
 		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch, sizeof(currentTemperature_ch)-1, 1000);
 		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
 		counter = 0;
