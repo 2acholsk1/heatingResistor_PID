@@ -51,7 +51,7 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 float temperature_f;
-float refTemp =  29.5;
+float refTemp =  29.f;
 
 char currentTemperature_ch[50];
 
@@ -128,7 +128,7 @@ void calcPID(float desiredTemperature, float currentTemperature, struct PID *PID
 
 	PID->UP = PID->Kp * PID->error;
 	PID->UI = PID->Ki * PID->Tp / 2.0 * (PID->error + PID->previousError) + PID->previousIn;
-	PID->UD = (PID->error - PID->previousError) / PID->Tp;
+	PID->UD = PID-> Kd *(PID->error - PID->previousError) / PID->Tp;
 
 	PID->previousError = PID->error;
 	PID->previousIn = PID->UI;
@@ -179,16 +179,16 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
 
    pid.U = 0;
-   pid.Kp = 0.013922;
-   pid.Ki = 0.00004897423;
-   pid.Kd = 0;
+   pid.Kp = 0.6674522;
+   pid.Ki = 0.0087592;
+   pid.Kd = -0.120727;
    pid.error = 0;
    pid.previousError = 0;
    pid.previousIn = 0;
    pid.UP = 0;
    pid.UD = 0;
    pid.UI = 0;
-   pid.Tp = 1;
+   pid.Tp = 1.f;
 
 
   HAL_TIM_Base_Start_IT(&htim3);
@@ -599,18 +599,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	BMP280_ReadTemperatureAndPressure(&temperature_f, &pressure);
 	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 	counter++;
-	checkingSetTemperature(refTemp);
-	calcPID(refTemp, temperature_f, &pid);
-	pulse = htim1.Init.Period * pid.U;
 
-	if(pulse < 0.0) pulseOut = 0;
-	else if(pulse > htim1.Init.Period) pulseOut = htim1.Init.Period;
-	else pulseOut = (uint16_t) pulse;
 
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
 	if (counter > 100)
 	{
+		checkingSetTemperature(refTemp);
+		calcPID(refTemp, temperature_f, &pid);
 
+		pulse = htim1.Init.Period * pid.U;
+
+		if(pulse < 0.0)
+			{
+			pulseOut = 0;
+			}
+		else if(pulse > htim1.Init.Period)
+			{
+			pulseOut = htim1.Init.Period;
+			}
+		else
+			{
+			pulseOut = (uint16_t) pulse;
+			}
 
 
 		sprintf(currentTemperature_ch, "%f : %f : %f : %d \n\r", temperature_f, pid.error, pid.U, pulseOut);
