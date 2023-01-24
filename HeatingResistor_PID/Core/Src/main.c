@@ -53,7 +53,7 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 float temperature_f;
 float refTemp =  29.f;
 
-char currentTemperature_ch[50];
+char currentTemperature_ch[53];
 
 int32_t pressure;
 int32_t counter = 0;
@@ -65,7 +65,7 @@ const uint32_t max_pulse = 999;
 float pulse = 1.f;
 uint16_t pulseOut = 0;
 
-
+char get_RX[10];
 
 
 /* USER CODE END PV */
@@ -73,34 +73,21 @@ uint16_t pulseOut = 0;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART3_UART_Init(void);
 static void MX_USB_OTG_FS_PCD_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART3_UART_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 
-uint32_t maping(float val, float inMin, float inMax, uint32_t outMin, uint32_t outMax)
-{
-  return (val - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-}
+
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void checkingSetTemperature(float U_ref)
-{
-	if (U_ref < 20.f)
-	{
-		U_ref = 20.f;
-	}
-	else if (U_ref > 40.f)
-	{
-		U_ref = 40.f;
-	}
-}
+
 
 struct PID
 {
@@ -169,10 +156,10 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
+  MX_USART3_UART_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   BMP280_Init(&hi2c1, BMP280_TEMPERATURE_16BIT, BMP280_STANDARD, BMP280_FORCEDMODE);
@@ -193,9 +180,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim3);
 
-
-
-
+  HAL_UART_Receive_IT(&huart3, (uint8_t)get_RX, sizeof(get_RX));
 
 
 
@@ -205,6 +190,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	 HAL_Delay(1);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -411,7 +397,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 100;
+  htim3.Init.Prescaler = 10000;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 7200;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -593,18 +579,38 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->Instance == USART3)
+	{
+		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+
+		refTemp = atof(get_RX);
+		HAL_UART_Receive_IT(&huart3, (uint8_t)get_RX, sizeof(get_RX));
+
+	}
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-
-	BMP280_ReadTemperatureAndPressure(&temperature_f, &pressure);
-	HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-	counter++;
-
-
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
-	if (counter > 100)
+	if(htim->Instance == TIM3)
 	{
-		checkingSetTemperature(refTemp);
+		BMP280_ReadTemperatureAndPressure(&temperature_f, &pressure);
+
+
+
+		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
+
+
+		if(refTemp < 20.0)
+			{
+			refTemp = 20.0;
+			}
+		else if(refTemp > 40.0)
+			{
+			refTemp = 40.0;
+			}
+
 		calcPID(refTemp, temperature_f, &pid);
 
 		pulse = htim1.Init.Period * pid.U;
@@ -623,11 +629,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			}
 
 
-		sprintf(currentTemperature_ch, "%f : %f : %f : %d \n\r", temperature_f, pid.error, pid.U, pulseOut);
+		sprintf(currentTemperature_ch, "%f : %f : %f : %d : %f \n\r", temperature_f, pid.error, pid.U, get_RX, refTemp);
 		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch, sizeof(currentTemperature_ch)-1, 1000);
 		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
-		counter = 0;
 	}
+
 
 }
 

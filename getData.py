@@ -12,3 +12,4 @@ with open("data.csv", "w", newline="") as file:
         file.write(line + ',')
         time.sleep(0.01)
 
+    
