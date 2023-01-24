@@ -53,7 +53,7 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 float temperature_f;
 float refTemp =  29.f;
 
-char currentTemperature_ch[53];
+char currentTemperature_ch[24];
 
 int32_t pressure;
 int32_t counter = 0;
@@ -65,7 +65,7 @@ const uint32_t max_pulse = 999;
 float pulse = 1.f;
 uint16_t pulseOut = 0;
 
-char get_RX[10];
+char get_RX[1];
 
 
 /* USER CODE END PV */
@@ -180,7 +180,7 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim3);
 
-  HAL_UART_Receive_IT(&huart3, (uint8_t)get_RX, sizeof(get_RX));
+  HAL_UART_Receive_IT(&huart3, get_RX, 1);
 
 
 
@@ -585,8 +585,21 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	{
 		HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 
-		refTemp = atof(get_RX);
-		HAL_UART_Receive_IT(&huart3, (uint8_t)get_RX, sizeof(get_RX));
+
+			switch(get_RX[0])
+			{
+				case 'u':
+				{
+					refTemp += 0.1;
+					break;
+				}
+				case 'd':
+				{
+					refTemp -= 0.1;
+					break;
+				}
+			}
+		HAL_UART_Receive_IT(&huart3, get_RX, 1);
 
 	}
 }
@@ -629,7 +642,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			}
 
 
-		sprintf(currentTemperature_ch, "%f : %f : %f : %d : %f \n\r", temperature_f, pid.error, pid.U, get_RX, refTemp);
+		sprintf(currentTemperature_ch, "%f : %f \n\r", temperature_f, refTemp);
 		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch, sizeof(currentTemperature_ch)-1, 1000);
 		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
 	}

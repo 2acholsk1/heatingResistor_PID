@@ -12,7 +12,7 @@ serial_port = serial.Serial(port="COM5",
                                     dsrdtr=False)
 
 
-data = 60
-serial_port.write(data)
+data = 'd'
+serial_port.write(data.encode())
 time.sleep(0.5)
 
