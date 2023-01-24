@@ -3276,8 +3276,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  8001c62:	4846      	ldr	r0, [pc, #280]	; (8001d7c <HAL_TIM_PeriodElapsedCallback+0x130>)
  8001c64:	f7ff f8ec 	bl	8000e40 <BMP280_ReadTemperatureAndPressure>
 
-
-
 		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
  8001c68:	4b45      	ldr	r3, [pc, #276]	; (8001d80 <HAL_TIM_PeriodElapsedCallback+0x134>)
  8001c6a:	881a      	ldrh	r2, [r3, #0]
@@ -3379,7 +3377,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  8001d30:	801a      	strh	r2, [r3, #0]
 			}
 
-
 		sprintf(currentTemperature_ch, "%f : %f \n\r", temperature_f, refTemp);
  8001d32:	4b12      	ldr	r3, [pc, #72]	; (8001d7c <HAL_TIM_PeriodElapsedCallback+0x130>)
  8001d34:	edd3 7a00 	vldr	s15, [r3]
@@ -3392,19 +3389,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  8001d4e:	4914      	ldr	r1, [pc, #80]	; (8001da0 <HAL_TIM_PeriodElapsedCallback+0x154>)
  8001d50:	4814      	ldr	r0, [pc, #80]	; (8001da4 <HAL_TIM_PeriodElapsedCallback+0x158>)
  8001d52:	f006 fe53 	bl	80089fc <siprintf>
-		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch, sizeof(currentTemperature_ch)-1, 1000);
+		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch,
  8001d56:	f44f 737a 	mov.w	r3, #1000	; 0x3e8
  8001d5a:	2217      	movs	r2, #23
  8001d5c:	4911      	ldr	r1, [pc, #68]	; (8001da4 <HAL_TIM_PeriodElapsedCallback+0x158>)
  8001d5e:	4812      	ldr	r0, [pc, #72]	; (8001da8 <HAL_TIM_PeriodElapsedCallback+0x15c>)
  8001d60:	f004 fa14 	bl	800618c <HAL_UART_Transmit>
+										sizeof(currentTemperature_ch)-1, 1000);
+
 		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
  8001d64:	2180      	movs	r1, #128	; 0x80
  8001d66:	4811      	ldr	r0, [pc, #68]	; (8001dac <HAL_TIM_PeriodElapsedCallback+0x160>)
  8001d68:	f000 ff29 	bl	8002bbe <HAL_GPIO_TogglePin>
 	}
-
-
 }
  8001d6c:	bf00      	nop
  8001d6e:	3708      	adds	r7, #8

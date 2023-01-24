@@ -51,7 +51,7 @@ PCD_HandleTypeDef hpcd_USB_OTG_FS;
 
 /* USER CODE BEGIN PV */
 float temperature_f;
-float refTemp =  29.f;
+float refTemp =  27.5;
 
 char currentTemperature_ch[24];
 
@@ -610,8 +610,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		BMP280_ReadTemperatureAndPressure(&temperature_f, &pressure);
 
-
-
 		__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, pulseOut);
 
 
@@ -641,13 +639,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			pulseOut = (uint16_t) pulse;
 			}
 
-
 		sprintf(currentTemperature_ch, "%f : %f \n\r", temperature_f, refTemp);
-		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch, sizeof(currentTemperature_ch)-1, 1000);
+		HAL_UART_Transmit(&huart3, (uint8_t *)currentTemperature_ch,
+										sizeof(currentTemperature_ch)-1, 1000);
+
 		HAL_GPIO_TogglePin(LED_BLUE_GPIO_Port, LED_BLUE_Pin);
 	}
-
-
 }
 
 

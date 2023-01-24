@@ -5,7 +5,7 @@ import signal
 
 ser = serial.Serial("COM5", 115200, parity=serial.PARITY_NONE)
 
-with open("data.csv", "w", newline="") as file:
+with open("data2.csv", "w", newline="") as file:
     while True:
         line = ser.readline().decode().strip()
         print(line)
